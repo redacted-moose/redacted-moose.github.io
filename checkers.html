@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html;charset=utf-8" >
+		<title>Checkers</title>
+
+		<script id="background-vertex-shader" type="x-shader/x-vertex">
+			attribute vec4 vPosition;
+
+			void main() {
+			    gl_Position = vPosition;
+			}
+		</script>
+
+		<script id="background-fragment-shader" type="x-shader/x-fragment">
+			precision mediump float;
+			uniform vec4 color;
+
+			void main() {
+			    gl_FragColor = color;
+			}
+		</script>
+
+		<script id="checkers-vertex-shader" type="x-shader/x-vertex">
+			attribute vec4 vPosition;
+			uniform vec2 offset;
+
+			void main() {
+			    gl_Position = vec4(vPosition.x + offset.x, vPosition.y + offset.y, vPosition.zw);
+			}
+		</script>
+
+		<script id="checkers-fragment-shader" type="x-shader/x-fragment">
+			precision mediump float;
+			uniform vec4 color;
+
+			void main() {
+			    gl_FragColor = color;
+			}
+		</script>
+
+		<script type="text/javascript" src="./Common/webgl-utils.js"></script>
+		<script type="text/javascript" src="./Common/initShaders.js"></script>
+		<script type="text/javascript" src="./Common/MV.js"></script>
+		<script type="text/javascript" src="checkers.js"></script>
+	</head>
+
+	<body>
+		<canvas id="gl-canvas" width="800" height="800">
+			Oops ... your browser doesn't support the HTML5 canvas element
+		</canvas>
+		<p>
+			<button id="EndTurn">End Turn</button>
+		</p>
+	</body>
+</html>

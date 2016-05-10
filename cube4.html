@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html;charset=utf-8" >
+<title>Cube 4 - Rotating 3D Cube with World Coordinates</title>
+
+
+<script id="vertex-shader" type="x-shader/x-vertex">
+attribute vec4 vPosition;
+uniform   vec3 theta;
+uniform   mat4 clipXform;
+
+void
+main()
+{
+	vec3 angles = radians(theta);
+	vec3 c = cos(angles);
+	vec3 s = sin(angles);
+	
+	mat4 rx = mat4 (1.0, 0.0, 0.0, 0.0,
+	               0.0, c.x, s.x, 0.0,
+				   0.0, -s.x, c.x, 0.0,
+				   0.0, 0.0, 0.0, 1.0);
+				   
+	mat4 ry = mat4 (c.y, 0.0, -s.y, 0.0,
+					0.0, 1.0, 0.0, 0.0,
+					s.y, 0.0, c.y, 0.0,
+					0.0, 0.0, 0.0, 1.0);
+	
+	mat4 rz = mat4 (c.z, s.z, 0.0, 0.0,
+					-s.z, c.z, 0.0, 0.0,
+					0.0, 0.0, 1.0, 0.0,
+					0.0, 0.0, 0.0, 1.0);
+	
+	mat4 tz = mat4 (1.0, 0.0, 0.0, 0.0,
+					0.0, 1.0, 0.0, 0.0,
+					0.0, 0.0, 1.0, 0.0,
+					0.0, 0.0, -1.0, 1.0);
+	
+	mat4 modelView = tz * rz * ry * rx * clipXform;
+    gl_Position = modelView * vPosition;
+}
+</script>
+
+<script id="fragment-shader" type="x-shader/x-fragment">
+precision mediump float;
+   
+uniform vec4 color;
+
+void
+main()
+{
+    gl_FragColor = color;
+}
+</script>
+
+<script type="text/javascript" src="./Common/webgl-utils.js"></script>
+<script type="text/javascript" src="./Common/initShaders.js"></script>
+<script type="text/javascript" src="./Common/MV.js"></script>
+<script type="text/javascript" src="cube4.js"></script>
+</head>   
+
+<body>
+<button id="XButton">Rotate x-axis</button>
+<button id="YButton">Rotate y-axis</button>
+<button id="ZButton">Rotate z-axis</button>
+<button id="Reset">Reset angles</button>
+<canvas id="gl-canvas" width="500" height="500">
+Oops ... your browser doesn't support the HTML5 canvas element
+</canvas>
+</body>
+</html>
