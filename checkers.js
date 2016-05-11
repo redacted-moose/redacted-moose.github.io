@@ -107,10 +107,11 @@ class GameState {
 	}
 
 	select(checker) {
+		if (checker === undefined || checker.player !== this.currentPlayer) return;
 		this.selectedChecker = checker;
-		if (this.selectedChecker === undefined || this.selectedChecker.player !== this.currentPlayer) return;
-		console.log(this.selectedChecker);
+		// console.log(this.selectedChecker);
 		this.openPositions = this.findOpenPositions(this.selectedChecker);
+		this.highlight();
 	}
 
 	mouse(event) {
@@ -121,9 +122,9 @@ class GameState {
 			x: -1 + 2 * (event.clientX - canvasXOffset) / canvas.width,
 			y: -1 + 2 * (canvas.height - event.clientY + canvasYOffset) / canvas.height
 		};
-		console.log("Mouse clicked at: " + mouseCoords.x + ", " + mouseCoords.y);
+		// console.log("Mouse clicked at: " + mouseCoords.x + ", " + mouseCoords.y);
 		var coords = GameState.toBoardCoords(mouseCoords.x, mouseCoords.y);
-		console.log("Board coords: " + coords.x + ", " + coords.y);
+		// console.log("Board coords: " + coords.x + ", " + coords.y);
 
 		return coords;
 	}
@@ -134,11 +135,11 @@ class GameState {
 			dx: (availableSpace.x - this.selectedChecker.x) / 2,
 			dy: (availableSpace.y - this.selectedChecker.y) / 2
 		};
-		console.log(check);
+		// console.log(check);
 
 		// Find the enemy
 		var enemy = this.findChecker(this.selectedChecker.x + check.dx, this.selectedChecker.y + check.dy);
-		console.log(enemy);
+		// console.log(enemy);
 		// If it exists, remove it from the board
 		if (enemy !== undefined) {
 			var index = this.boardState.indexOf(enemy);
@@ -154,10 +155,9 @@ class GameState {
 
 		if (this.selectedChecker === undefined) {
 			this.select(tempChecker);
-			this.highlight();
 		} else {
+			this.unhighlight();
 			if (tempChecker === undefined) {
-				this.unhighlight();
 
 				var availableSpace = this.openPositions.find(function(position) {
 					return position.x === coords.x && position.y === coords.y;
@@ -170,24 +170,30 @@ class GameState {
 				} else {
 					this.selectedChecker = undefined;
 				}
-			} else if (tempChecker.player === this.selectedChecker.player) {
-				this.unhighlight();
+			} else if (tempChecker.player === this.currentPlayer) {
 				this.select(tempChecker);
-				this.highlight();
 			} else {
-				this.unhighlight();
 				this.selectedChecker = undefined;
 			}
 		}
 	}
 
 	endTurn() {
+		if (this.selectedChecker !== undefined) {
+			this.unhighlight();
+		}
+
+		var elem = document.getElementById("EndTurn");
+
 		if (this.currentPlayer === Player.BLACK) {
 			this.currentPlayer = Player.RED;
+			elem.innerHTML = "End Red's Turn";
 		} else {
 			this.currentPlayer = Player.BLACK;
+			elem.innerHTML = "End Black's Turn";
 		}
-		console.log("Player " + this.currentPlayer + "'s turn");
+
+		// console.log("Player " + this.currentPlayer + "'s turn");
 		this.selectedChecker = undefined;
 	}
 
@@ -286,8 +292,8 @@ var Color = {
 };
 
 var Player = {
-	BLACK: 0,
-	RED: 1
+	BLACK: 1,
+	RED: 2
 };
 
 var state = new GameState();
@@ -415,7 +421,7 @@ function makeCircles() {
 }
 
 function makeCircle(radius, x, y) {
-	circle = [];
+	var circle = [];
 	circle.push(vec2(x, y)); // Center
 	for (var i = 0; i < 32; i++) {
 		circle.push(vec2(x + radius * Math.cos(2 * i * Math.PI / 32), y + radius * Math.sin(2 * i * Math.PI / 32)));
