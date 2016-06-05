@@ -31,6 +31,32 @@
 			}
 		</script>
 
+		<script id="skybox-vertex-shader" type="x-shader/x-vertex">
+			attribute vec4 vPosition;
+			varying   vec3 textureCoords;
+			uniform   mat4 modelView;
+			uniform   mat4 projection;
+
+			void main() {
+				gl_Position = projection * modelView * vPosition;
+				textureCoords = vPosition.xyz;
+			}
+		</script>
+
+		<script id="skybox-fragment-shader" type="x-shader/x-fragment">
+			precision mediump float;
+
+			varying vec3 textureCoords;
+			uniform vec4 color;
+			uniform samplerCube cubeMap;
+
+			void main() {
+				/* gl_FragColor = color;*/
+				gl_FragColor = textureCube(cubeMap, textureCoords);
+				/* gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);*/
+			}
+		</script>
+
 		<script type="text/javascript" src="./Common/webgl-utils.js"></script>
 		<script type="text/javascript" src="./Common/initShaders.js"></script>
 		<script type="text/javascript" src="./Common/MV.js"></script>
