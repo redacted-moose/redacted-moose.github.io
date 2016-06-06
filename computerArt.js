@@ -1,3 +1,4 @@
+// 'use strict';
 var canvas;
 var gl;
 // var colorLoc;
@@ -113,46 +114,42 @@ function SphereShader (position, radius, vertex, fragment) {
 SphereShader.prototype = Object.create(Program.prototype);
 
 SphereShader.prototype.render = function() {
+
+	// var rx = rotate(theta[0], vec3(1.0, 0.0, 0.0));
+	// var ry = rotate(theta[1], vec3(0.0, 1.0, 0.0));
+	// var rz = rotate(theta[2], vec3(0.0, 0.0, 1.0));
+
+	// var rotation = mult(rz, mult(ry, rx));
+	// modelView = mult(looking, mult(tz2, mult(rotation, tz1)));
+	var modelView = this.getModelView();
+
+	gl.uniformMatrix4fv(this.uniforms.modelView, false, flatten(modelView));
+
 	for (var i = 0; i < this.indices.length/3; i++) {
 		gl.uniform4fv(this.uniforms.color, colors[i % 6]);
 		gl.drawElements(gl.TRIANGLES, 3, gl.UNSIGNED_BYTE, 3 * i);
 	}
 };
 
+SphereShader.prototype.getModelView = function() {
+	var rx = rotate(theta[0], vec3(1.0, 0.0, 0.0));
+	var ry = rotate(theta[1], vec3(0.0, 1.0, 0.0));
+	var rz = rotate(theta[2], vec3(0.0, 0.0, 1.0));
+
+	var rotation = mult(rz, mult(ry, rx));
+	return mult(looking, mult(tz2, mult(rotation, tz1)));
+};
+
+// function Sphere (position, radius) {
+// 	this.shader = new SphereShader("vertex-shader", "fragment-shader")
+// }
+
 function SkyboxShader (vertex, fragment) {
 	Program.call(this, vertex, fragment);
 
 	var size = 500;
 
-	// this.vertices = [
-	// 	vec4(0.0, 1.0, cubeSize, 1.0),
-	// 	vec4(0.0, cubeSize + 1, cubeSize, 1.0),
-	// 	vec4(cubeSize, cubeSize + 1, cubeSize, 1.0),
-	// 	vec4(cubeSize, 1.0, cubeSize, 1.0),
-	// 	vec4(0.0, 1.0, 0.0, 1.0),
-	// 	vec4(0.0, cubeSize + 1, 0.0, 1.0),
-	// 	vec4(cubeSize, cubeSize + 1, 0.0, 1.0),
-	// 	vec4(cubeSize, 1.0, 0.0, 1.0)
-	// ];
-
-	// this.indices = [
-	// 	1, 0, 3, 3, 2, 1, // front face
-	// 	2, 3, 7, 7, 6, 2, // right face
-	// 	3, 0, 4, 4, 7, 3, // bottom face
-	// 	6, 5, 1, 1, 2, 6, // top face
-	// 	4, 5, 6, 6, 7, 4, // back face
-	// 	5, 4, 0, 0, 1, 5 // left face
-	// ];
-
 	this.vertices = [
-		// vec4(-size, -size, size, 1.0),
-		// vec4(-size, size, size, 1.0),
-		// vec4(size, size, size, 1.0),
-		// vec4(size, -size, size, 1.0),
-		// vec4(-size, -size, -size, 1.0),
-		// vec4(-size, size, -size, 1.0),
-		// vec4(size, size, -size, 1.0),
-		// vec4(size, -size, -size, 1.0)
 		vec4(-size,  size, -size),
 	    vec4(-size, -size, -size),
 	    vec4(size, -size, -size),
@@ -197,13 +194,24 @@ function SkyboxShader (vertex, fragment) {
 
 	];
 
+	// this.vertices = [
+	// 	vec4(-size,  size, -size), // 0
+	//     vec4(-size, -size, -size), // 1
+	//     vec4(size, -size, -size), // 2
+	//     vec4(size,  size, -size), // 3
+	//     vec4(-size, -size,  size), // 4
+	//     vec4(-size,  size,  size), // 5
+	//     vec4(size, -size,  size), // 6
+	//     vec4(size,  size,  size), // 7
+	// ];
+
 	// this.indices = [
-	// 	3, 0, 1, 1, 2, 3, // front face
-	// 	7, 3, 2, 2, 6, 7, // right face
-	// 	4, 0, 3, 3, 7, 4, // bottom face
-	// 	1, 5, 6, 6, 2, 1, // top face
-	// 	6, 5, 4, 4, 7, 6, // back face
-	// 	0, 4, 5, 5, 1, 0 // left face
+	// 	0, 1, 2, 2, 3, 0, // front face
+	// 	4, 1, 0, 0, 5, 4, // right face
+	// 	2, 6, 7, 7, 3, 2, // bottom face
+	// 	4, 5, 7, 7, 6, 4, // top face
+	// 	0, 3, 7, 7, 5, 0, // back face
+	// 	1, 4, 2, 2, 4, 6 // left face
 	// ];
 
 	var attribBuffer = new AttribBuffer(this, "vPosition");
@@ -223,14 +231,13 @@ function SkyboxShader (vertex, fragment) {
 
 	// this.buffers.push(indexBuffer);
 
-	this.uniforms.color = gl.getUniformLocation(this.shader, "color");
-	this.uniforms.cubeMap = gl.getUniformLocation(this.shader, "cubeMap");
+	// this.uniforms.cubeMap = gl.getUniformLocation(this.shader, "cubeMap");
 	this.uniforms.modelView = gl.getUniformLocation(this.shader, "modelView");
 	this.uniforms.projection = gl.getUniformLocation(this.shader, "projection");
 
 	var texture1;
 
-	count = 0;
+	var count = 0;
 	var img = new Array(6);
 	var locs = ["nightFront.png", "nightBack.png", "nightLeft.png",
 				"nightRight.png", "nightTop.png", "nightBottom.png"];
@@ -249,6 +256,7 @@ function SkyboxShader (vertex, fragment) {
 				];
 				for (var j = 0; j < 6; j++) {
 					gl.texImage2D(targets[j], 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img[j]);
+
 					gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
                     gl.texParameteri(gl.TEXTURE_CUBE_MAP, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 				}
@@ -259,18 +267,6 @@ function SkyboxShader (vertex, fragment) {
 	}
 
 	this.textureID = texture1;
-	// var front = new Image();
-	// front.src = "nightFront.png";
-	// var back = new Image();
-	// back.src = "nightBack.png";
-	// var left = new Image();
-	// left.src = "nightLeft.png";
-	// var right = new Image();
-	// right.src = "nightRight.png";
-	// var top = new Image();
-	// top.src = "nightTop.png";
-	// var bottom = new Image();
-	// bottom.src = "nightBottom.png";
 
     // gl.bindTexture(gl.TEXTURE_CUBE_MAP, texture1);
 
@@ -300,16 +296,13 @@ function SkyboxShader (vertex, fragment) {
 SkyboxShader.prototype = Object.create(Program.prototype);
 
 SkyboxShader.prototype.render = function() {
-	// for (var i = 0; i < this.indices.length/6; i++) {
-	// 	// gl.disable(gl.DEPTH_TEST);
-	// 	// gl.activeTexture(gl.TEXTURE0);
-	// 	// gl.bindTexture(gl.TEXTURE_CUBE_MAP, this.textureID);
-	// 	// gl.uniform4fv(this.uniforms.color, colors[i]);
-	// 	gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_BYTE, 6 * i);
-	// 	// gl.enable(gl.DEPTH_TEST);
-	// }
+	modelView = mult(looking, mult(tz2, tz1));
+
+	gl.uniformMatrix4fv(this.uniforms.modelView, false, flatten(modelView));
+	gl.drawArrays(gl.TRIANGLES, 0, this.vertices.length);
+
 	// for (var i = 0; i < this.vertices.length/6; i++) {
-		gl.drawArrays(gl.TRIANGLES, 0, this.vertices.length);
+	// 	gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_BYTE, 6 * i);
 	// }
 };
 
@@ -516,7 +509,7 @@ window.onload = function init() {
 	gl.clearColor(0.0, 0.0, 0.0, 1.0);
 	gl.enable(gl.DEPTH_TEST);
 	projection = perspective(45.0, aspect, 1, 100 * cubeSize);
-	//projection = ortho (windowMin, windowMax, windowMin, windowMax, windowMin, windowMax+cubeSize);
+
 	// Register event listeners for the buttons
 
 	var a = document.getElementById("XButton");
@@ -566,20 +559,14 @@ window.onload = function init() {
 	//		   0.0, 0.0, 1.0, cubeSize2,
 	//		   0.0, 0.0, 0.0, 1.0);
 
-	// tz1 = mat4(1.0, 0.0, 0.0, 0,
-	//		   0.0, 1.0, 0.0, 0,
-	//		   0.0, 0.0, 1.0, 0,
-	//		   0.0, 0.0, 0.0, 1.0);
 	tz1 = translate(0, 0, 0);
-
-	// tz2 = mat4(1.0, 0.0, 0.0, 0,
-	//		   0.0, 1.0, 0.0, 0,
-	//		   0.0, 0.0, 1.0, 0,
-	//		   0.0, 0.0, 0.0, 1.0);
 	tz2 = translate(0, 0, 0);
 
 	// looking = lookAt(vec3(cubeSize2, cubeSize2, 4 * cubeSize), vec3(cubeSize2, cubeSize2, 0), vec3(0.0, 1.0, 0.0));
-	looking = lookAt(vec3(cubeSize2, cubeSize2, 4 * cubeSize), vec3(0, 0, 0), vec3(0.0, 1.0, 0.0));
+	eye = vec3(cubeSize2, cubeSize2, 4 * cubeSize);
+	at = vec3(0, 0, 0);
+	up = vec3(0.0, 1.0, 0.0);
+	looking = lookAt(eye, at, up);
 
 	render();
 };
@@ -588,48 +575,13 @@ function render() {
 	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 	theta[axis] += 0.5;
 
-	// for (var i = 0; i < 3; i++) {
-	//	angles[i] = radians(theta[i]);
-	//	c[i] = Math.cos(angles[i]);
-	//	s[i] = Math.sin(angles[i]);
-	// }
-
-	// rx = mat4(1.0, 0.0, 0.0, 0.0,
-	//		  0.0, c[0], -s[0], 0.0,
-	//		  0.0, s[0], c[0], 0.0,
-	//		  0.0, 0.0, 0.0, 1.0);
-	rx = rotate(theta[0], vec3(1.0, 0.0, 0.0));
-
-	// ry = mat4(c[1], 0.0, s[1], 0.0,
-	//		  0.0, 1.0, 0.0, 0.0,
-	//		  -s[1], 0.0, c[1], 0.0,
-	//		  0.0, 0.0, 0.0, 1.0);
-	ry = rotate(theta[1], vec3(0.0, 1.0, 0.0));
-
-	// rz = mat4(c[2], -s[2], 0.0, 0.0,
-	//		  s[2], c[2], 0.0, 0.0,
-	//		  0.0, 0.0, 1.0, 0.0,
-	//		  0.0, 0.0, 0.0, 1.0);
-	rz = rotate(theta[2], vec3(0.0, 0.0, 1.0));
-
-	rotation = mult(rz, mult(ry, rx));
-	modelView = mult(looking, mult(tz2, mult(rotation, tz1)));
-
 	programs.forEach(
 		function (program) {
 			gl.useProgram(program.shader);
 			program.setBuffersAndAttributes();
-			gl.uniformMatrix4fv(program.uniforms.modelView, false, flatten(modelView));
 			program.render();
 		}
 	);
-
-	// for (var program of programs) {
-	//	gl.useProgram(program.shader);
-	//	program.setBuffersAndAttributes();
-	//	gl.uniformMatrix4fv(program.uniforms.modelView, false, flatten(modelView));
-	//	program.render();
-	// }
 
 	requestAnimFrame(render);
 }
