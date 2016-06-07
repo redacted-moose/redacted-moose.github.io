@@ -31,6 +31,62 @@
 			}
 		</script>
 
+		<script id="planet-vertex-shader" type="x-shader/x-vertex">
+			attribute vec4 vPosition;
+			attribute vec4 vNormal;
+			varying   vec3 surfaceNormal, lightVector, eyeVector;
+			uniform   mat4 modelView;
+			uniform   mat4 projection;
+			uniform   vec4 lightPosition;
+
+			void main() {
+				vec3 pos = -(modelView * vPosition).xyz;
+				vec3 light = (modelView * lightPosition).xyz;
+				lightVector = light - pos;
+				eyeVector =  -pos;
+				surfaceNormal = normalize((modelView * vNormal).xyz);
+				gl_Position = projection * modelView * vPosition;
+			}
+		</script>
+
+		<script id="planet-fragment-shader" type="x-shader/x-fragment">
+			precision mediump float;
+
+			uniform vec4 color;
+			uniform vec4 ambientProduct;
+			uniform vec4 diffuseProduct;
+			uniform vec4 specularProduct;
+			uniform float shininess;
+			varying vec3 surfaceNormal, lightVector, eyeVector;
+
+			void main() {
+				vec4 fColor;
+
+				vec3 lightDirection = normalize(lightVector);
+
+				/* vec3 H = normalize(lightDirection + eyeVector);*/
+				vec3 E = normalize(eyeVector);
+				vec3 R = reflect(-lightDirection, surfaceNormal);
+				vec4 ambient = ambientProduct;
+
+				float Kd = max(dot(lightDirection, surfaceNormal), 0.0);
+				vec4  diffuse = (diffuseProduct * 20.0 * Kd)/length(lightVector);
+
+				float Ks = pow(max(dot(E, R), 0.0), shininess);
+				vec4  specular = (specularProduct * 20.0 * Ks)/length(lightVector);
+
+				if (dot(lightDirection, surfaceNormal) < 0.0) specular = vec4(0.0, 0.0, 0.0, 1.0);
+
+				/* fColor = ambient + diffuse +specular;*/
+
+				fColor = ambient + diffuse + specular;
+				/* fColor = diffuse;*/
+				fColor.a = 1.0;
+
+				gl_FragColor = fColor;
+			}
+		</script>
+
 		<script id="skybox-vertex-shader" type="x-shader/x-vertex">
 			attribute vec4 vPosition;
 			varying   vec3 textureCoords;
@@ -62,7 +118,7 @@
 	</head>
 
 	<body>
-		<canvas id="gl-canvas" width="500" height="500">
+		<canvas id="gl-canvas" width="1600" height="900">
 			Oops ... your browser doesn't support the HTML5 canvas element
 		</canvas>
 	</body>
