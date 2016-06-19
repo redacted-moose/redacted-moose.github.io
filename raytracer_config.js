@@ -90,32 +90,40 @@ Light.lighting = function(intersection, camera) {
 		var light = config.lights[i];
 		var toLightVector = subtract(intersection.point, light.position);
 		var distance = length(toLightVector);
-		var lightDirection = normalize(toLightVector);
 		var attenuationFactor = light.attenuation[0] +
 				(light.attenuation[1] * distance) +
 				(light.attenuation[2] * distance * distance);
 
+		var lightDirection = normalize(toLightVector);
+		var unitLightVector = negate(lightDirection);
+
+		var brightness = dot(intersection.normal, unitLightVector);
+		brightness = Math.max(brightness, 0.0);
+
 		// reflection = normalize(2 * (lightDirection . normal) * normal - lightDirection)
 		var reflection = normalize(Light.reflect(lightDirection, intersection.normal));
 
-		var brightness = dot(intersection.normal, lightDirection);
-		// brightness = Math.max(0.0, brightness);
+		var specularFactor = dot(reflection, camera);
+		specularFactor = Math.max(specularFactor, 0.0);
+
+		var dampedFactor = Math.pow(specularFactor, 5.0);
 
 		var colorScale = scale(brightness/attenuationFactor, intersection.entity.diffuse_constant);
-		// var colorVec = intersection.entity.color.toVec4();
 		var colorVec = light.color.toVec4();
-
 		var diffuse = mult(colorScale, colorVec);
-		// diffuse.forEach(function(value) {Math.floor(value);});
+
 		diffuseColor = add(diffuseColor, diffuse);
 
-		var specular = mult(scale(Math.max(Math.pow(dot(reflection, camera), 0.0), 5.0), intersection.entity.specular_constant), light.color.toVec4());
-		// specular.forEach(function(value) {Math.floor(value);});
-		// console.log(specular);
+		var specular = mult(scale(dampedFactor/attenuationFactor, intersection.entity.specular_constant), light.color.toVec4());
+		// var specular = scale(dampedFactor/attenuationFactor, light.color.toVec4());
 		specularColor = add(specularColor, specular);
+		// // specular.forEach(function(value) {Math.floor(value);});
+		// // console.log(specular);
 	}
 
 	var totalColor = add(ambientColor, mult(diffuseColor, intersection.entity.color.toVec4()), specularColor);
+	// var totalColor = ambientColor;
+	// var totalColor = mult(diffuseColor, intersection.entity.color.toVec4());
 	// var totalColor = specularColor;
 
 	return Color.fromVec4(totalColor);
@@ -139,9 +147,9 @@ function Entity (args) {
 	this.rotation = args.rotation || vec3();
 	this.scale = args.scale || vec3();
 	this.color = args.color || new Color();
-	this.ambient_constant = vec4(0.2, 0.2, 0.2, 1.0);
-	this.diffuse_constant = vec4(1.0, 0.8, 0.0, 1.0);
-	this.specular_constant = vec4(1.0, 0.8, 0.0, 1.0);
+	this.ambient_constant = vec4(0.1, 0.1, 0.1, 1.0);
+	this.diffuse_constant = vec4(1.0, 1.0, 1.0, 1.0);
+	this.specular_constant = vec4(1.0, 1.0, 1.0, 1.0);
 }
 Entity.prototype.lighting = function(toCameraVector, surfaceNormal, point) {
 	// var reflect = function(lightDir, norm) {
@@ -252,6 +260,6 @@ var config = {
 	],
 
 	lights: [ // Lights in the scene
-		new Light(vec3(0.0, 0.0, 0.0), Color.WHITE)
+		new Light(vec3(1.0, 1.0, 1.0), Color.WHITE)
 	]
 };
