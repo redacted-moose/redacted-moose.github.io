@@ -70,7 +70,7 @@ Color.PURPLE = new Color({
 	h: 300,
 	s: 1.0,
 	v: 0.5
-});
+}); // Colors can be specified in HSV as well
 
 function Light(position, color) {
 	Entity.call(this, {
@@ -95,7 +95,7 @@ function Entity(args) {
 	this.color = args.color || new Color();
 	this.reflectivity = args.reflectivity || 0.0;
 	this.constants = args.constants || {
-		ambient: vec4(0.1, 0.1, 0.1, 1.0),
+		ambient: vec4(0.4, 0.4, 0.4, 1.0),
 		diffuse: vec4(1.0, 1.0, 1.0, 1.0),
 		specular: vec4(1.0, 1.0, 1.0, 1.0)
 	};
@@ -133,7 +133,6 @@ Sphere.prototype.intersect = function(ray) {
 		var t = (-b - Math.sqrt(discriminant)) / (2 * a);
 		var point = add(ray.start, scale(t, distance));
 		var normal = normalize(subtract(point, this.position));
-		// var reflectedVector = normalize(Light.reflect(normal, normalize(negate(point))));
 		var reflectedVector = normalize(Light.reflect(normal, reverseDistance));
 		var reflection = new Ray(point, add(point, reflectedVector));
 		return new Intersection(t, point, normal, reflection, this);
@@ -142,7 +141,7 @@ Sphere.prototype.intersect = function(ray) {
 	}
 };
 
-function Plane(position, normal, height, width, color, reflectivity) {
+function XYPlane (position, normal, height, width, color, reflectivity) {
 	Entity.call(this, {
 		position: position || vec3(0, 0, 0),
 		color: color || Color.WHITE,
@@ -152,8 +151,8 @@ function Plane(position, normal, height, width, color, reflectivity) {
 	this.width = width || 1.0;
 	this.height = height || 1.0;
 }
-Plane.prototype = Object.create(Entity.prototype);
-Plane.prototype.intersect = function(ray) {
+XYPlane.prototype = Object.create(Entity.prototype);
+XYPlane.prototype.intersect = function(ray) {
 	var distance = subtract(ray.end, ray.start);
 	var reverseDistance = subtract(ray.start, ray.end);
 	var direction = normalize(distance);
@@ -164,10 +163,81 @@ Plane.prototype.intersect = function(ray) {
 
 	var point = add(ray.start, scale(t, distance));
 
-	if (point[0] > (this.position[0] + this.height/2) || point[0] < (this.position[0] - this.height/2)) {
+	// TODO: Arbitrary angle plane bounding
+	if (point[1] > (this.position[1] + this.height/2) || point[1] < (this.position[1] - this.height/2)) {
 		return new Intersection();
 	}
-	if (point[1] > (this.position[1] + this.width/2) || point[1] < (this.position[1] - this.width/2)) {
+	if (point[0] > (this.position[0] + this.width/2) || point[0] < (this.position[0] - this.width/2)) {
+		return new Intersection();
+	}
+
+	var reflectionVector = normalize(Light.reflect(this.normal, reverseDistance));
+	var reflection = new Ray(point, add(point, reflectionVector));
+	return new Intersection(t, point, this.normal, reflection, this);
+};
+
+function XZPlane (position, normal, height, width, color, reflectivity) {
+	Entity.call(this, {
+		position: position || vec3(0, 0, 0),
+		color: color || Color.WHITE,
+		reflectivity: reflectivity || 0.0
+	});
+	this.normal = normal || vec3(0.0, 0.0, 1.0);
+	this.width = width || 1.0;
+	this.height = height || 1.0;
+}
+XZPlane.prototype = Object.create(Entity.prototype);
+XZPlane.prototype.intersect = function(ray) {
+	var distance = subtract(ray.end, ray.start);
+	var reverseDistance = subtract(ray.start, ray.end);
+	var direction = normalize(distance);
+	var eyeToPlane = subtract(this.position, ray.start);
+	var t = dot(this.normal, eyeToPlane)/dot(this.normal, direction);
+
+	if (t <= 0) return new Intersection();
+
+	var point = add(ray.start, scale(t, distance));
+
+	// TODO: Arbitrary angle plane bounding
+	if (point[2] > (this.position[2] + this.height/2) || point[2] < (this.position[2] - this.height/2)) {
+		return new Intersection();
+	}
+	if (point[0] > (this.position[0] + this.width/2) || point[0] < (this.position[0] - this.width/2)) {
+		return new Intersection();
+	}
+
+	var reflectionVector = normalize(Light.reflect(this.normal, reverseDistance));
+	var reflection = new Ray(point, add(point, reflectionVector));
+	return new Intersection(t, point, this.normal, reflection, this);
+};
+
+function YZPlane (position, normal, height, width, color, reflectivity) {
+	Entity.call(this, {
+		position: position || vec3(0, 0, 0),
+		color: color || Color.WHITE,
+		reflectivity: reflectivity || 0.0
+	});
+	this.normal = normal || vec3(0.0, 0.0, 1.0);
+	this.width = width || 1.0;
+	this.height = height || 1.0;
+}
+YZPlane.prototype = Object.create(Entity.prototype);
+YZPlane.prototype.intersect = function(ray) {
+	var distance = subtract(ray.end, ray.start);
+	var reverseDistance = subtract(ray.start, ray.end);
+	var direction = normalize(distance);
+	var eyeToPlane = subtract(this.position, ray.start);
+	var t = dot(this.normal, eyeToPlane)/dot(this.normal, direction);
+
+	if (t <= 0) return new Intersection();
+
+	var point = add(ray.start, scale(t, distance));
+
+	// TODO: Arbitrary angle plane bounding
+	if (point[1] > (this.position[1] + this.height/2) || point[1] < (this.position[1] - this.height/2)) {
+		return new Intersection();
+	}
+	if (point[2] > (this.position[2] + this.width/2) || point[2] < (this.position[2] - this.width/2)) {
 		return new Intersection();
 	}
 
@@ -187,29 +257,20 @@ function Box(position, height, width, length, color, reflectivity) {
 	this.width = width;
 	this.length = length;
 	this.faces = [
-		new Plane(add(position, vec3(-width/2, 0, 0)), vec3(-1, 0, 0), height, length, color, reflectivity),
-		new Plane(add(position, vec3(width/2, 0, 0)), vec3(1, 0, 0), height, length, color, reflectivity),
-		new Plane(add(position, vec3(0,-height/2, 0)), vec3(0, -1, 0), length, width, color, reflectivity),
-		new Plane(add(position, vec3(0,height/2, 0)), vec3(0, 1, 0), length, width, color, reflectivity),
-		new Plane(add(position, vec3(0, 0, -length/2)), vec3(0, 0, -1), height, width, color, reflectivity),
-		new Plane(add(position, vec3(0, 0, length/2)), vec3(0, 0, 1), height, width, color, reflectivity),
+		new YZPlane(add(position, vec3(-width/2, 0, 0)), vec3(-1, 0, 0), height, length, color, reflectivity),
+		new YZPlane(add(position, vec3(width/2, 0, 0)), vec3(1, 0, 0), height, length, color, reflectivity),
+		new XZPlane(add(position, vec3(0, -height/2, 0)), vec3(0, -1, 0), length, width, color, reflectivity),
+		new XZPlane(add(position, vec3(0, height/2, 0)), vec3(0, 1, 0), length, width, color, reflectivity),
+		new XYPlane(add(position, vec3(0, 0, -length/2)), vec3(0, 0, -1), height, width, color, reflectivity),
+		new XYPlane(add(position, vec3(0, 0, length/2)), vec3(0, 0, 1), height, width, color, reflectivity),
 	];
 }
 Box.prototype = Object.create(Entity.prototype);
 Box.prototype.intersect = function(ray) {
-	var intersection = new Intersection();
-	for (var i = 0; i < this.faces.length; i++) {
-		var face = this.faces[i];
-		var result = face.intersect(ray);
-		if (result.t > 0 && result.t < intersection.t) {
-			intersection = result;
-		}
-	}
-
-	return intersection;
+	return Intersection.find(this.faces, ray);
 };
 
-// To make new entity types, subclass entity and implement an intersect function, like so:
+// To make new entity types, subclass Entity and implement an intersect function, like so:
 // function MyEntity(position, color, ...) { // Add any arguments that need to be tracked within the object
 // 	Entity.call({position: ..., rotation: ..., scale: ..., color: ...}); // Call the super constructor
 // 	this.blah = blah || 0; // Store any additional instance variables
@@ -221,7 +282,7 @@ Box.prototype.intersect = function(ray) {
 
 var config = {
 	camera: { // Camera
-		eye: vec3(5.0, 5.0, 5.0), // Location of the viewer (vec3)
+		eye: vec3(-5.0, 5.0, 5.0), // Location of the viewer (vec3)
 		at: vec3(0.0, 0.0, 0.0), // Point the viewer is looking at (vec3)
 		up: vec3(0.0, 1.0, 0.0) // "Up" direction relative to eye (vec3)
 	},
@@ -229,11 +290,10 @@ var config = {
 	plane: { // Viewing plane
 		distance: 1, // Distance to viewing plane (float)
 		fov: 45 // Field of view, in degrees (float)
-		// aspect: 1 // Aspect Ratio, change if canvas width/height ratio changes (float)
 		// Aspect ratio is calculated dynamically from the size of the canvas
 	},
 
-	background: Color.BLACK, // Background color
+	background: Color.WHITE, // Background color
 
 	entities: [ // Objects in the scene
 		new Sphere({
@@ -245,14 +305,16 @@ var config = {
 			center: vec3(1.5, 0, 0),
 			radius: 1,
 			color: Color.WHITE,
-			reflectivity: 0.0
+			reflectivity: 0.8
 		}),
-		new Plane(vec3(0, 0, -5), vec3(0, 0, 1), 10, 20, Color.WHITE, 1.0),
-		// new Box(vec3(0, 0, 0), 1, 1, 1, Color.GREEN, 0.0)
+		new XYPlane(vec3(0, 0, -5), vec3(0, 0, 1), 20, 20, Color.WHITE, 1.0),
+		new Box(vec3(0, 0, -2), 2, 2, 2, Color.PURPLE, 0.0),
+		new XZPlane(vec3(0, -1, 0), vec3(0, 1, 0), 10, 20, Color.WHITE, 0.5)
 	],
 
 	lights: [ // Lights in the scene
-		new Light(vec3(4.5, 0.0, 5.0), Color.GREEN),
-		new Light(vec3(0.0, 0.0, -2.0), Color.WHITE)
+		new Light(vec3(4.5, 1.0, 0.0), Color.GREEN),
+		new Light(vec3(-4.5, 1.0, 0.0), Color.WHITE),
+		new Light(vec3(1.0, 1.0, -4.5), Color.MAGENTA)
 	]
 };

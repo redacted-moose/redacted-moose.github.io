@@ -68,18 +68,10 @@ Intersection.prototype.lighting = function(camera) {
 		var lightColor = light.color.toVec4();
 		toLightRay.end = light.position;
 
-		var intersection = new Intersection();
 
 		// Shadowing
-		// for (var j = 0; j < config.entities.length; j++) {
-		//	var entity = config.entities[j];
-		//	var result = entity.intersect(toLightRay);
-		//	if (result.t < intersection.t) {
-		//		intersection = result;
-		//	}
-		// }
-
-		// if (intersection.entity !== entity) continue;
+		var intersection = Intersection.find(config.entities, toLightRay);
+		if (intersection.t < Infinity) continue;
 
 		var toLightVector = subtract(this.point, light.position);
 		var distance = length(toLightVector);
@@ -95,7 +87,7 @@ Intersection.prototype.lighting = function(camera) {
 
 		// reflection = normalize(2 * (lightDirection . normal) * normal - lightDirection)
 		var reflection = normalize(Light.reflect(this.normal, lightDirection));
-		var normalizedCameraVector = normalize(subtract(camera, this.point));
+		var normalizedCameraVector = normalize(subtract(this.point, camera));
 
 		var specularFactor = dot(reflection, normalizedCameraVector);
 		specularFactor = Math.max(specularFactor, 0.0);
@@ -120,23 +112,14 @@ Intersection.prototype.lighting = function(camera) {
 Intersection.prototype.color = function() {
 	if (this.entity.reflectivity === 0.0) return this.entity.color;
 
-	// console.log(subtract(this.reflection.end, this.reflection.start));
-
-	var intersection = new Intersection();
-	for (var i = 0; i < config.entities.length; i++) {
-		var entity = config.entities[i];
-		var result = entity.intersect(this.reflection);
-		if (0 < result.t && result.t < intersection.t) {
-			intersection = result;
-		}
-	}
+	var intersection = Intersection.find(config.entities, this.reflection);
 
 	if (this.entity.reflectivity === 1.0) {
 		return (intersection.t < Infinity) ? intersection.lighting(config.camera.eye) : config.background;
 	}
 
 	if (intersection.t < Infinity) {
-		return Color.fromVec4(mix(intersection.entity.color.toVec4(),
+		return Color.fromVec4(mix(intersection.lighting(config.camera.eye).toVec4(),
 								  this.entity.color.toVec4(),
 								  this.entity.reflectivity));
 	} else {
@@ -144,6 +127,17 @@ Intersection.prototype.color = function() {
 								  this.entity.color.toVec4(),
 								  this.entity.reflectivity));
 	}
+};
+Intersection.find = function(entities, ray) {
+	var intersection = new Intersection();
+	for (var i = 0; i < entities.length; i++) {
+		var entity = entities[i];
+		var result = entity.intersect(ray);
+		if (1e-6 < result.t && result.t < intersection.t) {
+			intersection = result;
+		}
+	}
+	return intersection;
 };
 
 window.onload = function init() {
@@ -158,16 +152,14 @@ window.onload = function init() {
 
 	height = 2 * config.plane.distance * Math.tan(radians(config.plane.fov) / 2);
 	width = height * aspect;
-	// eye - distance*n
+	// center = eye - distance*n
 	center = subtract(config.camera.eye, scale(config.plane.distance, n));
-	// console.log(center);
-	// center - width/2 * u + height/2 * v
+	// topLeft = center - width/2 * u + height/2 * v
 	topLeft = add(subtract(center, scale(width / 2, u)), scale(height / 2, v));
 	render();
 };
 
 function render() {
-	var intersection = new Intersection();
 	var data = canvasData.data;
 	data.setColor = function(x, y, color) {
 		var index = 4 * (canvas.width * y + x);
@@ -183,20 +175,11 @@ function render() {
 		var plane_y = scale(-(y - 0.5) * height / canvas.height, v);
 		for (var x = 0; x < canvas.width; x++) {
 			var plane_x = scale((x + 0.5) * width / canvas.width, u);
-			intersection.reset();
 			// topLeft + x*width/canvas.width * u - y*height/canvas.height * v
-			// The 0.5 is to start in the middle of the pixel
-			ray.end = add(topLeft,
-						  add(plane_x, plane_y));
+			// The 0.5 is to start in the middle of the pixel as opposed to the corner
+			ray.end = add(topLeft, add(plane_x, plane_y));
 
-			// config.objects.forEach(intersect);
-			for (var i = 0; i < config.entities.length; i++) {
-				var entity = config.entities[i];
-				var result = entity.intersect(ray);
-				if (0 < result.t && result.t < intersection.t) {
-					intersection = result;
-				}
-			}
+			var intersection = Intersection.find(config.entities, ray);
 
 			data.setColor(x, y, (intersection.t < Infinity) ?
 						  intersection.lighting(config.camera.eye) :
